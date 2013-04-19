@@ -1,4 +1,0 @@
-ranqus
-======
-
-Random pictures app
