@@ -1,10 +1,13 @@
-from pymongo import MongoClient
-from flask import Flask, request, render_template
+import random
 
-from models import Picture
+from pymongo import MongoClient
+from gridfs import GridFS
+from flask import Flask, request, render_template, make_response
 
 connection = MongoClient('mongodb://localhost')
 database = connection.ranqus
+
+fs = GridFS(database)
 
 app = Flask(__name__)
 
@@ -16,19 +19,30 @@ def page_not_found(error):
 
 @app.route('/')
 def hello_world():
-    picture = Picture(database)
-    return 'Hello World!' + picture.show()
+    return 'Hello World!'
 
 
 @app.route('/<int:width>/<int:height>/')
 def get_image(width, height):
-    return 'width: %d height: %d' % (width, height)
+    quantity = database.picture.find({}).count()
+    if quantity == 0:
+        return 'No data'
+    random_value = random.randrange(0, quantity)
+    photo = database.picture.find({})[random_value]
+    object_id = photo['picture_id']
+    _file = fs.get(object_id)
+    response = make_response(_file.read())
+    response.mimetype = _file.content_type
+    return response
 
 
 @app.route('/admin/upload/', methods=['GET', 'POST'])
 def upload_image():
     if request.method == 'POST':
-        print 'post'
+        photo = request.files['photo']
+        _id = fs.put(photo, contentType=photo.content_type, filename='test.jpg')
+        database.picture.insert({'picture_id': _id, 'size': 'big'})
+        return 'complete: ' + str(_id)
     return render_template('admin/upload.html')
 
 
