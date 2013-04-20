@@ -1,8 +1,10 @@
 import random
 
+from cStringIO import StringIO
+from PIL import Image
 from pymongo import MongoClient
 from gridfs import GridFS
-from flask import Flask, request, render_template, make_response
+from flask import Flask, request, render_template, make_response, send_file
 
 connection = MongoClient('mongodb://localhost')
 database = connection.ranqus
@@ -31,9 +33,25 @@ def get_image(width, height):
     photo = database.picture.find({})[random_value]
     object_id = photo['picture_id']
     _file = fs.get(object_id)
-    response = make_response(_file.read())
-    response.mimetype = _file.content_type
-    return response
+
+    im = StringIO()
+    im.write(_file.read())
+    im.seek(0)
+    im = Image.open(im)
+    size = (width, height)
+    im = im.resize(size, Image.ANTIALIAS)
+    im_io = StringIO()
+    format_file = _file.name.split('.')[1]
+    if format_file == 'jpg':
+        format_file = 'jpeg'
+    im.save(im_io, format_file, quality=100)
+    im_io.seek(0)
+
+    return send_file(im_io, mimetype='image/jpeg')
+
+    # response = make_response(_file.read())
+    # response.mimetype = _file.content_type
+    # return response
 
 
 @app.route('/admin/upload/', methods=['GET', 'POST'])
