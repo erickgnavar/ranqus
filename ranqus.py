@@ -44,7 +44,7 @@ def get_image(width, height):
     format_file = _file.name.split('.')[1]
     if format_file == 'jpg':
         format_file = 'jpeg'
-    im.save(im_io, format_file, quality=100)
+    im.save(im_io, format_file, quality=50)
     im_io.seek(0)
 
     return send_file(im_io, mimetype='image/jpeg')
